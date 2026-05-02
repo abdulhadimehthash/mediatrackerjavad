@@ -1,11 +1,9 @@
-// Shared data functions for Media Tracker
-
 const SUPABASE_URL = 'https://pnbylilnprmsfmwcvmaw.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Z9GGZVdej2V7cpFOGisC5A_W4zHwcB-';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 async function getLogs() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('logs')
     .select('*')
     .order('date', { ascending: true });
@@ -18,7 +16,7 @@ async function getLogs() {
 }
 
 async function saveLog(date, tasks, notes) {
-  const { error } = await supabase
+  const { error } = await supabaseClient
     .from('logs')
     .upsert({ 
       date: date, 
@@ -33,7 +31,7 @@ async function saveLog(date, tasks, notes) {
 }
 
 async function getFollowers() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('followers')
     .select('*');
     
@@ -55,7 +53,7 @@ async function saveFollowers(followersData) {
     count: followersData[key]
   }));
   
-  const { error } = await supabase
+  const { error } = await supabaseClient
     .from('followers')
     .upsert(updates, { onConflict: 'platform_id' });
     

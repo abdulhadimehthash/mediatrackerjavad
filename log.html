@@ -88,7 +88,7 @@
     const notes = document.getElementById('log-notes').value.trim();
 
     try {
-      await window.saveLog(date, tasks, notes);
+      await saveLog(date, tasks, notes);
       const msg = document.getElementById('save-msg');
       msg.classList.remove('hidden');
       setTimeout(() => { window.location.href = 'index.html'; }, 800);
