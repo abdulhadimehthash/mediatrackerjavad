@@ -37,10 +37,10 @@
       <div id="tasks-container">
         <div class="task-row">
           <input type="text" class="form-input task-input" placeholder="e.g. shot mentor training reel" />
-          <button class="remove-task" onclick="removeTask(this)">×</button>
+          <button type="button" class="remove-task" onclick="removeTask(this)">×</button>
         </div>
       </div>
-      <button class="btn-ghost" onclick="addTask()">+ Add Task</button>
+      <button type="button" class="btn-ghost" onclick="addTask()">+ Add Task</button>
     </div>
 
 
@@ -51,7 +51,7 @@
     </div>
 
     <div class="form-actions">
-      <button class="btn-primary" onclick="submitLog()">Save Log</button>
+      <button type="button" class="btn-primary" onclick="submitLog()">Save Log</button>
       <a href="index.html" class="btn-ghost">Cancel</a>
     </div>
 
@@ -70,7 +70,7 @@
     const container = document.getElementById('tasks-container');
     const row = document.createElement('div');
     row.className = 'task-row';
-    row.innerHTML = `<input type="text" class="form-input task-input" placeholder="Add a task..." /><button class="remove-task" onclick="removeTask(this)">×</button>`;
+    row.innerHTML = `<input type="text" class="form-input task-input" placeholder="Add a task..." /><button type="button" class="remove-task" onclick="removeTask(this)">×</button>`;
     container.appendChild(row);
     row.querySelector('input').focus();
   }
