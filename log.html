@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log Day — Media Tracker</title>
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<nav>
+  <span class="nav-brand">MEDIA<span class="dot">.</span>TRACKER</span>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="log.html" class="active">Log Day</a>
+    <a href="followers.html">Followers</a>
+    <a href="history.html">History</a>
+    <a href="report.html">Report</a>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <h1>Log Day<span class="cursor">_</span></h1>
+    <p class="sub" id="log-date-label"></p>
+  </div>
+
+  <div class="form-container">
+    <div class="form-section">
+      <label class="form-label">Date</label>
+      <input type="date" id="log-date" class="form-input" />
+    </div>
+
+    <div class="form-section">
+      <label class="form-label">Tasks Done Today</label>
+      <p class="form-hint">Add each task on a new line or one by one</p>
+      <div id="tasks-container">
+        <div class="task-row">
+          <input type="text" class="form-input task-input" placeholder="e.g. shot mentor training reel" />
+          <button class="remove-task" onclick="removeTask(this)">×</button>
+        </div>
+      </div>
+      <button class="btn-ghost" onclick="addTask()">+ Add Task</button>
+    </div>
+
+
+
+    <div class="form-section">
+      <label class="form-label">Notes <span class="optional">(optional)</span></label>
+      <textarea class="form-input form-textarea" id="log-notes" placeholder="Anything extra — what went well, what didn't, ideas..."></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-primary" onclick="submitLog()">Save Log</button>
+      <a href="index.html" class="btn-ghost">Cancel</a>
+    </div>
+
+    <div id="save-msg" class="save-msg hidden">✓ Log saved!</div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+<script>
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('log-date').value = today;
+  document.getElementById('log-date-label').textContent = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  function addTask() {
+    const container = document.getElementById('tasks-container');
+    const row = document.createElement('div');
+    row.className = 'task-row';
+    row.innerHTML = `<input type="text" class="form-input task-input" placeholder="Add a task..." /><button class="remove-task" onclick="removeTask(this)">×</button>`;
+    container.appendChild(row);
+    row.querySelector('input').focus();
+  }
+
+  function removeTask(btn) {
+    const rows = document.querySelectorAll('.task-row');
+    if (rows.length > 1) btn.parentElement.remove();
+  }
+
+  async function submitLog() {
+    const date = document.getElementById('log-date').value;
+    if (!date) return alert('Please select a date.');
+
+    const tasks = [...document.querySelectorAll('.task-input')].map(i => i.value.trim()).filter(Boolean);
+    const notes = document.getElementById('log-notes').value.trim();
+
+    try {
+      await window.saveLog(date, tasks, notes);
+      const msg = document.getElementById('save-msg');
+      msg.classList.remove('hidden');
+      setTimeout(() => { window.location.href = 'index.html'; }, 800);
+    } catch (err) {
+      alert('Error saving log. Please try again.');
+    }
+  }
+</script>
+</body>
+</html>

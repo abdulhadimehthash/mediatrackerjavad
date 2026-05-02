@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Followers — Media Tracker</title>
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<nav>
+  <span class="nav-brand">MEDIA<span class="dot">.</span>TRACKER</span>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="log.html">Log Day</a>
+    <a href="followers.html" class="active">Followers</a>
+    <a href="history.html">History</a>
+    <a href="report.html">Report</a>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <h1>Followers<span class="cursor">_</span></h1>
+    <p class="sub">Update your latest follower counts.</p>
+  </div>
+
+  <div class="form-container">
+    <div class="form-section">
+      <label class="form-label">Follower Counts</label>
+      <div class="followers-form-grid" id="followers-grid">
+        <div class="ff-group">
+          <label class="ff-label">Caliph IG</label>
+          <input type="number" class="form-input ff-input" id="ff-caliph_ig" />
+        </div>
+        <div class="ff-group">
+          <label class="ff-label">Kahani</label>
+          <input type="number" class="form-input ff-input" id="ff-kahani" />
+        </div>
+        <div class="ff-group">
+          <label class="ff-label">Life at Caliph</label>
+          <input type="number" class="form-input ff-input" id="ff-life_at_caliph" />
+        </div>
+        <div class="ff-group">
+          <label class="ff-label">Pen Club</label>
+          <input type="number" class="form-input ff-input" id="ff-pen_club" />
+        </div>
+        <div class="ff-group">
+          <label class="ff-label">KSF</label>
+          <input type="number" class="form-input ff-input" id="ff-ksf" />
+        </div>
+        <div class="ff-group">
+          <label class="ff-label">YT Subscribers</label>
+          <input type="number" class="form-input ff-input" id="ff-yt_subs" />
+        </div>
+        <div class="ff-group">
+          <label class="ff-label">YT Videos</label>
+          <input type="number" class="form-input ff-input" id="ff-yt_videos" />
+        </div>
+        <div class="ff-group">
+          <label class="ff-label">Shorts</label>
+          <input type="number" class="form-input ff-input" id="ff-shorts" />
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-primary" onclick="submitFollowers()">Save Followers</button>
+      <a href="index.html" class="btn-ghost">Cancel</a>
+    </div>
+
+    <div id="save-msg" class="save-msg hidden">✓ Followers updated!</div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+<script>
+  async function loadFollowers() {
+    const followers = await getFollowers();
+    const platforms = ['caliph_ig', 'kahani', 'life_at_caliph', 'pen_club', 'ksf', 'yt_subs', 'yt_videos', 'shorts'];
+    platforms.forEach(p => {
+      const el = document.getElementById('ff-' + p);
+      if (el && followers[p] !== undefined) {
+        el.value = followers[p];
+      }
+    });
+  }
+
+  async function submitFollowers() {
+    const followersData = {};
+    const platforms = ['caliph_ig', 'kahani', 'life_at_caliph', 'pen_club', 'ksf', 'yt_subs', 'yt_videos', 'shorts'];
+    
+    platforms.forEach(k => {
+      const val = document.getElementById('ff-' + k).value.trim();
+      if (val !== '') {
+        followersData[k] = parseInt(val, 10);
+      }
+    });
+
+    try {
+      await saveFollowers(followersData);
+      const msg = document.getElementById('save-msg');
+      msg.classList.remove('hidden');
+      setTimeout(() => { window.location.href = 'index.html'; }, 800);
+    } catch (err) {
+      alert('Error updating followers. Please try again.');
+    }
+  }
+
+  loadFollowers();
+</script>
+</body>
+</html>

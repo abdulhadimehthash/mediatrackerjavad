@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Media Tracker</title>
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<nav>
+  <span class="nav-brand">MEDIA<span class="dot">.</span>TRACKER</span>
+  <div class="nav-links">
+    <a href="index.html" class="active">Dashboard</a>
+    <a href="log.html">Log Day</a>
+    <a href="followers.html">Followers</a>
+    <a href="history.html">History</a>
+    <a href="report.html">Report</a>
+  </div>
+</nav>
+
+<main>
+  <section class="hero">
+    <div class="hero-left">
+      <p class="date-label" id="today-date"></p>
+      <h1>Good <span id="greeting-time"></span>, Javad<span class="cursor">_</span></h1>
+      <p class="sub">Track your media work. Stay consistent.</p>
+      <a href="log.html" class="btn-primary">+ Log Today</a>
+    </div>
+    <div class="hero-right">
+      <div class="stat-card">
+        <span class="stat-label">Days Logged</span>
+        <span class="stat-num" id="total-days">0</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">This Month</span>
+        <span class="stat-num" id="month-days">0</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Tasks Done</span>
+        <span class="stat-num" id="total-tasks">0</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="followers-strip">
+    <h2 class="section-title">Latest Follower Counts</h2>
+    <div class="platform-grid" id="platform-grid">
+      <!-- filled by JS -->
+    </div>
+  </section>
+
+  <section class="recent-logs">
+    <h2 class="section-title">Recent Logs</h2>
+    <div class="log-list" id="recent-list">
+      <p class="empty-state">No logs yet. Start by logging today's work.</p>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+<script>
+  // Date + greeting
+  const now = new Date();
+  document.getElementById('today-date').textContent = now.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const hour = now.getHours();
+  document.getElementById('greeting-time').textContent = hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : 'Evening';
+
+  async function loadDashboard() {
+    // Stats
+    const logs = await getLogs();
+    document.getElementById('total-days').textContent = logs.length;
+    const thisMonth = logs.filter(l => {
+      const d = new Date(l.date);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+    document.getElementById('month-days').textContent = thisMonth.length;
+    document.getElementById('total-tasks').textContent = logs.reduce((acc, l) => acc + (l.tasks ? l.tasks.filter(t => t.trim()).length : 0), 0);
+
+    // Platform grid
+    const followers = await getFollowers();
+    const platforms = ['caliph_ig', 'kahani', 'life_at_caliph', 'pen_club', 'ksf', 'yt_subs', 'yt_videos', 'shorts'];
+    const platformNames = {
+      caliph_ig: 'Caliph IG', kahani: 'Kahani', life_at_caliph: 'Life at Caliph',
+      pen_club: 'Pen Club', ksf: 'KSF', yt_subs: 'YT Subscribers', yt_videos: 'YT Videos', shorts: 'Shorts'
+    };
+
+    const grid = document.getElementById('platform-grid');
+    grid.innerHTML = '';
+    platforms.forEach(p => {
+      const val = followers[p] || '—';
+      const card = document.createElement('div');
+      card.className = 'pf-card';
+      card.innerHTML = `<span class="pf-name">${platformNames[p]}</span><span class="pf-val">${val}</span>`;
+      grid.appendChild(card);
+    });
+
+    // Recent logs
+    const list = document.getElementById('recent-list');
+    if (logs.length > 0) {
+      list.innerHTML = '';
+      [...logs].reverse().slice(0, 5).forEach(log => {
+        const el = document.createElement('div');
+        el.className = 'log-item';
+        const taskCount = log.tasks ? log.tasks.filter(t => t.trim()).length : 0;
+        el.innerHTML = `
+          <div class="log-date">${new Date(log.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+          <div class="log-tasks-preview">${log.tasks ? log.tasks.filter(t => t.trim()).slice(0, 2).join(' · ') : 'No tasks'}</div>
+          <div class="log-count">${taskCount} task${taskCount !== 1 ? 's' : ''}</div>
+        `;
+        list.appendChild(el);
+      });
+    }
+  }
+
+  loadDashboard();
+</script>
+</body>
+</html>

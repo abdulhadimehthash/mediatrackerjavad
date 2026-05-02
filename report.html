@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Report — Media Tracker</title>
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<nav>
+  <span class="nav-brand">MEDIA<span class="dot">.</span>TRACKER</span>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="log.html">Log Day</a>
+    <a href="followers.html">Followers</a>
+    <a href="history.html">History</a>
+    <a href="report.html" class="active">Report</a>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <h1>Monthly Report<span class="cursor">_</span></h1>
+    <p class="sub">Summary of your media work</p>
+  </div>
+
+  <div class="filter-bar">
+    <select id="report-month" class="form-input filter-select" onchange="generateReport()">
+    </select>
+    <button class="btn-primary" onclick="downloadPDF()">↓ Download PDF</button>
+  </div>
+
+  <div id="report-area">
+    <p class="empty-state">Select a month to view report.</p>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+<script>
+  let cachedLogs = [];
+
+  async function populateMonths() {
+    const logs = await getLogs();
+    cachedLogs = logs;
+    const months = [...new Set(logs.map(l => l.date.slice(0, 7)))].sort().reverse();
+    const sel = document.getElementById('report-month');
+    if (months.length === 0) {
+      sel.innerHTML = '<option>No logs yet</option>';
+      return;
+    }
+    months.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      const [y, mo] = m.split('-');
+      opt.textContent = new Date(y, mo - 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+      sel.appendChild(opt);
+    });
+    generateReport();
+  }
+
+  function generateReport() {
+    const month = document.getElementById('report-month').value;
+    if (!month) return;
+    const [y, mo] = month.split('-');
+    const monthName = new Date(y, mo - 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+
+    const logs = cachedLogs.filter(l => l.date.startsWith(month)).sort((a,b) => a.date.localeCompare(b.date));
+    const area = document.getElementById('report-area');
+
+    if (logs.length === 0) {
+      area.innerHTML = '<p class="empty-state">No logs for this month.</p>';
+      return;
+    }
+
+    const totalTasks = logs.reduce((acc, l) => acc + (l.tasks ? l.tasks.filter(t=>t.trim()).length : 0), 0);
+
+    area.innerHTML = `
+      <div class="report-card" id="printable-report">
+        <div class="report-top">
+          <div>
+            <div class="report-month-label">${monthName}</div>
+            <div class="report-title">Caliph Media Work Report</div>
+          </div>
+          <div class="report-meta">
+            <div class="report-stat"><span>${logs.length}</span><small>Days Active</small></div>
+            <div class="report-stat"><span>${totalTasks}</span><small>Tasks Done</small></div>
+          </div>
+        </div>
+
+        <div class="report-section">
+          <div class="report-section-title">Daily Log</div>
+          ${logs.map(log => {
+            const tasks = log.tasks ? log.tasks.filter(t=>t.trim()) : [];
+            return `
+              <div class="report-day">
+                <div class="report-day-date">${new Date(log.date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
+                <div class="report-day-tasks">
+                  ${tasks.length > 0 ? tasks.map(t => `<span class="report-task-item">— ${t}</span>`).join('') : '<span class="muted">No tasks</span>'}
+                </div>
+                ${log.notes ? `<div class="report-day-note">Note: ${log.notes}</div>` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <div class="report-footer">Generated on ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })} · Caliph Media Tracker</div>
+      </div>
+    `;
+  }
+
+  function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const month = document.getElementById('report-month').value;
+    if (!month) return alert('Select a month first.');
+    const [y, mo] = month.split('-');
+    const monthName = new Date(y, mo - 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+
+    const logs = cachedLogs.filter(l => l.date.startsWith(month)).sort((a,b) => a.date.localeCompare(b.date));
+    if (logs.length === 0) return alert('No logs for this month.');
+
+    const totalTasks = logs.reduce((acc, l) => acc + (l.tasks ? l.tasks.filter(t=>t.trim()).length : 0), 0);
+
+    let y_pos = 20;
+    const left = 15;
+    const pageW = 210;
+
+    // Header
+    doc.setFillColor(10, 10, 10);
+    doc.rect(0, 0, pageW, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('CALIPH MEDIA WORK REPORT', left, 16);
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text(monthName, left, 30);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${logs.length} Days  ·  ${totalTasks} Tasks`, pageW - left, 30, { align: 'right' });
+
+    y_pos = 55;
+    doc.setTextColor(10, 10, 10);
+
+    // Daily Log
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DAILY LOG', left, y_pos);
+    y_pos += 6;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(left, y_pos, pageW - left, y_pos);
+    y_pos += 6;
+
+    logs.forEach(log => {
+      if (y_pos > 270) { doc.addPage(); y_pos = 20; }
+      const dateStr = new Date(log.date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(dateStr, left, y_pos);
+      y_pos += 5;
+      const tasks = log.tasks ? log.tasks.filter(t=>t.trim()) : [];
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      if (tasks.length === 0) {
+        doc.setTextColor(150,150,150);
+        doc.text('— No tasks logged', left + 3, y_pos);
+        doc.setTextColor(10,10,10);
+        y_pos += 5;
+      } else {
+        tasks.forEach(t => {
+          if (y_pos > 270) { doc.addPage(); y_pos = 20; }
+          const lines = doc.splitTextToSize(`— ${t}`, pageW - left - left - 5);
+          doc.text(lines, left + 3, y_pos);
+          y_pos += lines.length * 5;
+        });
+      }
+      if (log.notes) {
+        doc.setTextColor(100,100,100);
+        doc.setFontSize(8);
+        const nlines = doc.splitTextToSize(`Note: ${log.notes}`, pageW - left - left - 5);
+        doc.text(nlines, left + 3, y_pos);
+        doc.setTextColor(10,10,10);
+        doc.setFontSize(9);
+        y_pos += nlines.length * 4 + 2;
+      }
+      y_pos += 3;
+    });
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(150,150,150);
+    doc.text(`Generated ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })} · Caliph Media Tracker`, pageW / 2, 290, { align: 'center' });
+
+    doc.save(`Media-Report-${monthName.replace(' ', '-')}.pdf`);
+  }
+
+  populateMonths();
+</script>
+</body>
+</html>
