@@ -90,3 +90,31 @@ async function saveIgPost(account, date, content) {
     throw error;
   }
 }
+
+async function getPunches() {
+  const { data, error } = await supabaseClient
+    .from('attendance')
+    .select('*')
+    .order('date', { ascending: false });
+    
+  if (error) {
+    console.error('Error fetching attendance:', error);
+    return [];
+  }
+  return data || [];
+}
+
+async function savePunch(date, status, time) {
+  const { error } = await supabaseClient
+    .from('attendance')
+    .upsert({ 
+      date: date, 
+      status: status, 
+      time: time 
+    }, { onConflict: 'date' });
+    
+  if (error) {
+    console.error('Error saving attendance:', error);
+    throw error;
+  }
+}

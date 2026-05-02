@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Punch — Media Tracker</title>
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<nav>
+  <span class="nav-brand">MEDIA<span class="dot">.</span>TRACKER</span>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="log.html">Log Day</a>
+    <a href="punch.html" class="active">Punch</a>
+    <a href="ig_posts.html">IG Posts</a>
+    <a href="followers.html">Followers</a>
+    <a href="history.html">History</a>
+    <a href="report.html">Report</a>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <h1>Punch In<span class="cursor">_</span></h1>
+    <p class="sub">Log your daily attendance status.</p>
+  </div>
+
+  <div class="form-container">
+    <div class="form-section">
+      <label class="form-label">Date</label>
+      <input type="date" id="punch-date" class="form-input" />
+    </div>
+
+    <div class="form-section">
+      <label class="form-label">Status</label>
+      <select id="punch-status" class="form-input" onchange="toggleTimeBox()">
+        <option value="" disabled selected>Select status...</option>
+        <option value="Present">Present</option>
+        <option value="Leave">Absent / Leave</option>
+      </select>
+    </div>
+
+    <div class="form-section hidden" id="time-section">
+      <label class="form-label">Punch Time</label>
+      <input type="time" id="punch-time" class="form-input" />
+    </div>
+
+    <div class="form-actions" style="margin-top: 32px;">
+      <button type="button" class="btn-punch" onclick="submitPunch()">👆🔴 Save</button>
+      <a href="index.html" class="btn-ghost">Cancel</a>
+    </div>
+
+    <div id="save-msg" class="save-msg hidden">✓ Punch saved!</div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+<script>
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('punch-date').value = today;
+
+  function toggleTimeBox() {
+    const status = document.getElementById('punch-status').value;
+    const timeSection = document.getElementById('time-section');
+    if (status === 'Present') {
+      timeSection.classList.remove('hidden');
+    } else {
+      timeSection.classList.add('hidden');
+    }
+  }
+
+  async function submitPunch() {
+    const date = document.getElementById('punch-date').value;
+    const status = document.getElementById('punch-status').value;
+    const time = document.getElementById('punch-time').value;
+
+    if (!date) return alert('Please select a date.');
+    if (!status) return alert('Please select a status.');
+    if (status === 'Present' && !time) return alert('Please select a punch time.');
+
+    try {
+      const finalTime = status === 'Present' ? time : null;
+      await savePunch(date, status, finalTime);
+      const msg = document.getElementById('save-msg');
+      msg.classList.remove('hidden');
+      setTimeout(() => { window.location.href = 'index.html'; }, 1000);
+    } catch (err) {
+      alert('Error saving punch. Please try again.');
+    }
+  }
+</script>
+</body>
+</html>

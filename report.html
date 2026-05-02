@@ -42,10 +42,13 @@
 <script src="app.js"></script>
 <script>
   let cachedLogs = [];
+  let cachedPunches = [];
 
   async function populateMonths() {
     const logs = await getLogs();
+    const punches = await getPunches();
     cachedLogs = logs;
+    cachedPunches = punches;
     const months = [...new Set(logs.map(l => l.date.slice(0, 7)))].sort().reverse();
     const sel = document.getElementById('report-month');
     if (months.length === 0) {
@@ -71,8 +74,12 @@
     const logs = cachedLogs.filter(l => l.date.startsWith(month)).sort((a,b) => a.date.localeCompare(b.date));
     const area = document.getElementById('report-area');
 
-    if (logs.length === 0) {
-      area.innerHTML = '<p class="empty-state">No logs for this month.</p>';
+    const punches = cachedPunches.filter(p => p.date.startsWith(month)).sort((a,b) => a.date.localeCompare(b.date));
+    const presentDays = punches.filter(p => p.status === 'Present').length;
+    const leaveDays = punches.filter(p => p.status === 'Leave').length;
+
+    if (logs.length === 0 && punches.length === 0) {
+      area.innerHTML = '<p class="empty-state">No logs or punches for this month.</p>';
       return;
     }
 
@@ -86,8 +93,20 @@
             <div class="report-title">Caliph Media Work Report</div>
           </div>
           <div class="report-meta">
-            <div class="report-stat"><span>${logs.length}</span><small>Days Active</small></div>
+            <div class="report-stat"><span>${presentDays}</span><small>Days Present</small></div>
+            <div class="report-stat"><span>${leaveDays}</span><small>Days Leave</small></div>
+            <div class="report-stat"><span>${logs.length}</span><small>Days Logged</small></div>
             <div class="report-stat"><span>${totalTasks}</span><small>Tasks Done</small></div>
+          </div>
+        </div>
+
+        <div class="report-section">
+          <div class="report-section-title">Attendance</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px;">
+            ${punches.length > 0 ? punches.map(p => {
+              const d = new Date(p.date + 'T00:00:00').getDate();
+              return `<span style="padding: 4px 8px; border-radius: 4px; background: ${p.status === 'Present' ? '#1c1c1c' : '#301010'}; color: ${p.status === 'Present' ? '#888' : '#ff4444'}; border: 1px solid ${p.status === 'Present' ? '#333' : '#662222'}">Day ${d}: ${p.status}${p.time ? ` @ ${p.time}` : ''}</span>`;
+            }).join('') : '<span class="muted">No attendance punched this month.</span>'}
           </div>
         </div>
 
@@ -121,7 +140,10 @@
     const monthName = new Date(y, mo - 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
     const logs = cachedLogs.filter(l => l.date.startsWith(month)).sort((a,b) => a.date.localeCompare(b.date));
-    if (logs.length === 0) return alert('No logs for this month.');
+    const punches = cachedPunches.filter(p => p.date.startsWith(month)).sort((a,b) => a.date.localeCompare(b.date));
+    const presentDays = punches.filter(p => p.status === 'Present').length;
+    
+    if (logs.length === 0 && punches.length === 0) return alert('No data for this month.');
 
     const totalTasks = logs.reduce((acc, l) => acc + (l.tasks ? l.tasks.filter(t=>t.trim()).length : 0), 0);
 
@@ -141,7 +163,7 @@
     doc.text(monthName, left, 30);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`${logs.length} Days  ·  ${totalTasks} Tasks`, pageW - left, 30, { align: 'right' });
+    doc.text(`${presentDays} Present  ·  ${logs.length} Days Logged  ·  ${totalTasks} Tasks`, pageW - left, 30, { align: 'right' });
 
     y_pos = 55;
     doc.setTextColor(10, 10, 10);
