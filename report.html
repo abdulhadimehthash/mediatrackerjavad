@@ -42,6 +42,22 @@
       <label style="display: flex; gap: 6px; align-items: center; cursor: pointer;">
         <input type="checkbox" id="chk-ig" checked onchange="generateReport()"> Include IG Posts
       </label>
+      <label style="display: flex; gap: 6px; align-items: center; cursor: pointer;">
+        <input type="checkbox" id="chk-followers" onchange="toggleFollowerInputs(); generateReport()"> Include Follower Growth
+      </label>
+    </div>
+    
+    <div id="follower-inputs-container" style="display: none; background: var(--bg2); padding: 16px; border-radius: 8px; border: 1px solid var(--border);">
+      <div style="font-size: 13px; font-weight: 600; margin-bottom: 12px;">Current Follower Counts</div>
+      <div class="followers-form-grid" style="gap: 12px;">
+        <div class="ff-group"><label class="ff-label">Caliph IG</label><input type="number" class="form-input ff-input" id="rep-caliph_ig" oninput="generateReport()" /></div>
+        <div class="ff-group"><label class="ff-label">Kahani</label><input type="number" class="form-input ff-input" id="rep-kahani" oninput="generateReport()" /></div>
+        <div class="ff-group"><label class="ff-label">Life at Caliph</label><input type="number" class="form-input ff-input" id="rep-life_at_caliph" oninput="generateReport()" /></div>
+        <div class="ff-group"><label class="ff-label">Pen Club</label><input type="number" class="form-input ff-input" id="rep-pen_club" oninput="generateReport()" /></div>
+        <div class="ff-group"><label class="ff-label">KSF</label><input type="number" class="form-input ff-input" id="rep-ksf" oninput="generateReport()" /></div>
+        <div class="ff-group"><label class="ff-label">YT Subs</label><input type="number" class="form-input ff-input" id="rep-yt_subs" oninput="generateReport()" /></div>
+        <div class="ff-group"><label class="ff-label">YT Videos</label><input type="number" class="form-input ff-input" id="rep-yt_videos" oninput="generateReport()" /></div>
+      </div>
     </div>
   </div>
 
@@ -56,14 +72,22 @@
   let cachedLogs = [];
   let cachedPunches = [];
   let cachedIgPosts = [];
+  let cachedFollowers = {};
+
+  function toggleFollowerInputs() {
+    const chk = document.getElementById('chk-followers').checked;
+    document.getElementById('follower-inputs-container').style.display = chk ? 'block' : 'none';
+  }
 
   async function populateMonths() {
     const logs = await getLogs();
     const punches = await getPunches();
     const igPosts = await getIgPosts();
+    const followers = await getFollowers();
     cachedLogs = logs;
     cachedPunches = punches;
     cachedIgPosts = igPosts;
+    cachedFollowers = followers;
     const allDates = [
       ...logs.map(x => x.date),
       ...punches.map(x => x.date),
@@ -104,18 +128,57 @@
     const includeAttendance = document.getElementById('chk-attendance').checked;
     const includeTasks = document.getElementById('chk-tasks').checked;
     const includeIg = document.getElementById('chk-ig').checked;
+    const includeFollowers = document.getElementById('chk-followers').checked;
 
-    if (!includeAttendance && !includeTasks && !includeIg) {
+    if (!includeAttendance && !includeTasks && !includeIg && !includeFollowers) {
       area.innerHTML = '<p class="empty-state">Please select at least one section to include in the report.</p>';
       return;
     }
 
-    if (logs.length === 0 && punches.length === 0 && igPosts.length === 0) {
+    if (logs.length === 0 && punches.length === 0 && igPosts.length === 0 && !includeFollowers) {
       area.innerHTML = '<p class="empty-state">No data for this month.</p>';
       return;
     }
 
     const totalTasks = logs.reduce((acc, l) => acc + (l.tasks ? l.tasks.filter(t=>t.trim()).length : 0), 0);
+
+    const platformNames = {
+      'caliph_ig': 'Caliph IG',
+      'kahani': 'Kahani',
+      'life_at_caliph': 'Life at Caliph',
+      'pen_club': 'Pen Club',
+      'ksf': 'KSF',
+      'yt_subs': 'YouTube Subs',
+      'yt_videos': 'YouTube Videos'
+    };
+
+    let growthHtml = '';
+    if (includeFollowers) {
+      growthHtml = `
+        <div class="report-section">
+          <div class="report-section-title">Follower Growth</div>
+          <div style="display: grid; gap: 8px;">
+            ${Object.keys(platformNames).map(key => {
+              const oldVal = cachedFollowers[key] || 0;
+              const newValStr = document.getElementById('rep-' + key).value;
+              const newVal = newValStr ? parseInt(newValStr, 10) : oldVal;
+              const diff = newVal - oldVal;
+              const diffStr = diff > 0 ? '+' + diff : diff;
+              const diffColor = diff > 0 ? '#4caf50' : (diff < 0 ? '#ff4444' : '#888');
+              return \`
+                <div style="display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px solid var(--border); padding-bottom: 4px;">
+                  <span style="color: var(--text2);">\${platformNames[key]}</span>
+                  <div style="display: flex; gap: 16px; align-items: center;">
+                    <span class="muted">\${oldVal} ➔ \${newVal}</span>
+                    <span style="color: \${diffColor}; font-weight: 600; width: 40px; text-align: right;">\${diffStr}</span>
+                  </div>
+                </div>
+              \`;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
 
 
     area.innerHTML = `
@@ -134,6 +197,8 @@
         </div>
 
         </div>
+
+        ${growthHtml}
 
         ${includeAttendance ? `
         <div class="report-section">
@@ -196,15 +261,16 @@
     const includeAttendance = document.getElementById('chk-attendance').checked;
     const includeTasks = document.getElementById('chk-tasks').checked;
     const includeIg = document.getElementById('chk-ig').checked;
+    const includeFollowers = document.getElementById('chk-followers').checked;
 
-    if (!includeAttendance && !includeTasks && !includeIg) return alert('Select at least one section to download.');
+    if (!includeAttendance && !includeTasks && !includeIg && !includeFollowers) return alert('Select at least one section to download.');
 
     const logs = cachedLogs.filter(l => l.date.startsWith(month)).sort((a,b) => a.date.localeCompare(b.date));
     const punches = cachedPunches.filter(p => p.date.startsWith(month)).sort((a,b) => a.date.localeCompare(b.date));
     const igPosts = cachedIgPosts.filter(p => p.date.startsWith(month)).sort((a,b) => a.date.localeCompare(b.date));
     const presentDays = punches.filter(p => p.status === 'Present').length;
     
-    if (logs.length === 0 && punches.length === 0 && igPosts.length === 0) return alert('No data for this month.');
+    if (logs.length === 0 && punches.length === 0 && igPosts.length === 0 && !includeFollowers) return alert('No data for this month.');
 
     const totalTasks = logs.reduce((acc, l) => acc + (l.tasks ? l.tasks.filter(t=>t.trim()).length : 0), 0);
 
@@ -236,6 +302,45 @@
 
     y_pos = 55;
     doc.setTextColor(10, 10, 10);
+
+    const platformNames = {
+      'caliph_ig': 'Caliph IG',
+      'kahani': 'Kahani',
+      'life_at_caliph': 'Life at Caliph',
+      'pen_club': 'Pen Club',
+      'ksf': 'KSF',
+      'yt_subs': 'YouTube Subs',
+      'yt_videos': 'YouTube Videos'
+    };
+
+    if (includeFollowers) {
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('FOLLOWER GROWTH', left, y_pos);
+      y_pos += 6;
+      doc.setDrawColor(200, 200, 200);
+      doc.line(left, y_pos, pageW - left, y_pos);
+      y_pos += 6;
+      
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      Object.keys(platformNames).forEach(key => {
+        if (y_pos > 270) { doc.addPage(); y_pos = 20; }
+        const oldVal = cachedFollowers[key] || 0;
+        const newValStr = document.getElementById('rep-' + key).value;
+        const newVal = newValStr ? parseInt(newValStr, 10) : oldVal;
+        const diff = newVal - oldVal;
+        const diffStr = diff > 0 ? '+' + diff : diff;
+        
+        doc.setFont('helvetica', 'bold');
+        doc.text(platformNames[key], left, y_pos);
+        doc.setFont('helvetica', 'normal');
+        
+        doc.text(`${oldVal} -> ${newVal}  (${diffStr})`, pageW - left, y_pos, { align: 'right' });
+        y_pos += 6;
+      });
+      y_pos += 3;
+    }
 
     if (includeAttendance) {
       doc.setFontSize(11);
