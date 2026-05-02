@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instagram Posts — Media Tracker</title>
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<nav>
+  <span class="nav-brand">MEDIA<span class="dot">.</span>TRACKER</span>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="log.html">Log Day</a>
+    <a href="ig_posts.html" class="active">IG Posts</a>
+    <a href="followers.html">Followers</a>
+    <a href="history.html">History</a>
+    <a href="report.html">Report</a>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <h1>Instagram Posts<span class="cursor">_</span></h1>
+    <p class="sub">Draft and log your latest content ideas.</p>
+  </div>
+
+  <div class="form-container">
+    <div class="form-section">
+      <label class="form-label">Select Account</label>
+      <select id="ig-account" class="form-input">
+        <option value="" disabled selected>Choose an account...</option>
+        <option value="Caliph life school">Caliph life school</option>
+        <option value="Caliph kahani">Caliph kahani</option>
+        <option value="Life at caliph">Life at caliph</option>
+        <option value="Pen club">Pen club</option>
+        <option value="KSF">KSF</option>
+      </select>
+    </div>
+
+    <div class="form-section">
+      <label class="form-label">Date</label>
+      <input type="date" id="ig-date" class="form-input" />
+    </div>
+
+    <div class="form-section">
+      <label class="form-label">Post Content</label>
+      <p class="form-hint">Write the content/caption for the post here.</p>
+      <textarea class="form-input form-textarea" id="ig-content" placeholder="E.g. 5 tips for better discipline..." style="height: 180px;"></textarea>
+    </div>
+
+    <div class="form-actions" style="margin-top: 32px;">
+      <button type="button" class="btn-punch" onclick="submitIgPost()">👆🔴 Save Post</button>
+      <a href="index.html" class="btn-ghost">Cancel</a>
+    </div>
+
+    <div id="save-msg" class="save-msg hidden">✓ Post saved!</div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+<script>
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('ig-date').value = today;
+
+  async function submitIgPost() {
+    const account = document.getElementById('ig-account').value;
+    const date = document.getElementById('ig-date').value;
+    const content = document.getElementById('ig-content').value.trim();
+
+    if (!account) return alert('Please select an account.');
+    if (!date) return alert('Please select a date.');
+    if (!content) return alert('Please write the post content.');
+
+    try {
+      await saveIgPost(account, date, content);
+      const msg = document.getElementById('save-msg');
+      msg.classList.remove('hidden');
+      setTimeout(() => { window.location.href = 'index.html'; }, 1000);
+    } catch (err) {
+      alert('Error saving post. Please try again.');
+    }
+  }
+</script>
+</body>
+</html>

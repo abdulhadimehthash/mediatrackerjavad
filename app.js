@@ -62,3 +62,31 @@ async function saveFollowers(followersData) {
     throw error;
   }
 }
+
+async function getIgPosts() {
+  const { data, error } = await supabaseClient
+    .from('ig_posts')
+    .select('*')
+    .order('created_at', { ascending: false });
+    
+  if (error) {
+    console.error('Error fetching IG posts:', error);
+    return [];
+  }
+  return data || [];
+}
+
+async function saveIgPost(account, date, content) {
+  const { error } = await supabaseClient
+    .from('ig_posts')
+    .insert([{ 
+      account: account, 
+      date: date, 
+      content: content 
+    }]);
+    
+  if (error) {
+    console.error('Error saving IG post:', error);
+    throw error;
+  }
+}
