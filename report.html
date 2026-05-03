@@ -13,7 +13,7 @@
   <span class="nav-brand">MEDIA<span class="dot">.</span>TRACKER</span>
   <div class="nav-links">
     <a href="index.html">Dashboard</a>
-    <a href="log.html">Log Day</a>
+    <a href="log.html">Today's Tasks</a>
     <a href="ig_posts.html">IG Posts</a>
     <a href="followers.html">Followers</a>
     <a href="history.html">History</a>
@@ -30,14 +30,14 @@
   <div class="filter-bar" style="flex-direction: column; align-items: stretch; gap: 16px;">
     <div style="display: flex; gap: 12px; align-items: center; justify-content: space-between;">
       <select id="report-month" class="form-input filter-select" onchange="generateReport()" style="width: auto;"></select>
-      <button class="btn-primary" onclick="downloadPDF()">↓ Download PDF</button>
+      <button class="btn-primary" onclick="downloadPDF()">👁️ Preview PDF</button>
     </div>
     <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--text2);">
       <label style="display: flex; gap: 6px; align-items: center; cursor: pointer;">
         <input type="checkbox" id="chk-attendance" checked onchange="generateReport()"> Include Attendance
       </label>
       <label style="display: flex; gap: 6px; align-items: center; cursor: pointer;">
-        <input type="checkbox" id="chk-tasks" checked onchange="generateReport()"> Include Daily Log
+        <input type="checkbox" id="chk-tasks" checked onchange="generateReport()"> Include Today's Tasks
       </label>
       <label style="display: flex; gap: 6px; align-items: center; cursor: pointer;">
         <input type="checkbox" id="chk-ig" checked onchange="generateReport()"> Include IG Posts
@@ -80,41 +80,46 @@
   }
 
   async function populateMonths() {
-    const logs = await getLogs();
-    const punches = await getPunches();
-    const igPosts = await getIgPosts();
-    const followers = await getFollowers();
-    cachedLogs = logs;
-    cachedPunches = punches;
-    cachedIgPosts = igPosts;
-    cachedFollowers = followers;
-    const allDates = [
-      ...logs.map(x => x.date),
-      ...punches.map(x => x.date),
-      ...igPosts.map(x => x.date)
-    ].filter(d => d && typeof d === 'string');
-    const months = [...new Set(allDates.map(d => d.slice(0, 7)))].sort().reverse();
-    const sel = document.getElementById('report-month');
-    sel.innerHTML = '';
-    if (months.length === 0) {
-      sel.innerHTML = '<option>No logs yet</option>';
-      return;
+    try {
+      const logs = await getLogs();
+      const punches = await getPunches();
+      const igPosts = await getIgPosts();
+      const followers = await getFollowers();
+      cachedLogs = logs;
+      cachedPunches = punches;
+      cachedIgPosts = igPosts;
+      cachedFollowers = followers;
+      const allDates = [
+        ...logs.map(x => x.date),
+        ...punches.map(x => x.date),
+        ...igPosts.map(x => x.date)
+      ].filter(d => d && typeof d === 'string');
+      const months = [...new Set(allDates.map(d => d.slice(0, 7)))].sort().reverse();
+      const sel = document.getElementById('report-month');
+      sel.innerHTML = '';
+      if (months.length === 0) {
+        sel.innerHTML = '<option>No logs yet</option>';
+        return;
+      }
+      months.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        const [y, mo] = m.split('-');
+        opt.textContent = new Date(parseInt(y, 10), parseInt(mo, 10) - 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+        sel.appendChild(opt);
+      });
+      generateReport();
+    } catch (err) {
+      console.error(err);
+      document.getElementById('report-area').innerHTML = '<p class="empty-state" style="color: #ff4444;">Error loading data. Please refresh.</p>';
     }
-    months.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m;
-      const [y, mo] = m.split('-');
-      opt.textContent = new Date(y, mo - 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
-      sel.appendChild(opt);
-    });
-    generateReport();
   }
 
   function generateReport() {
     const month = document.getElementById('report-month').value;
-    if (!month) return;
+    if (!month || month === 'No logs yet') return;
     const [y, mo] = month.split('-');
-    const monthName = new Date(y, mo - 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    const monthName = new Date(parseInt(y, 10), parseInt(mo, 10) - 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
     const logs = cachedLogs.filter(l => l.date.startsWith(month)).sort((a,b) => a.date.localeCompare(b.date));
     const area = document.getElementById('report-area');
@@ -214,7 +219,7 @@
 
         ${includeTasks ? `
         <div class="report-section">
-          <div class="report-section-title">Daily Log</div>
+          <div class="report-section-title">Today's Tasks</div>
           ${logs.map(log => {
             const tasks = log.tasks ? log.tasks.filter(t=>t.trim()) : [];
             return \`
@@ -254,9 +259,9 @@
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const month = document.getElementById('report-month').value;
-    if (!month) return alert('Select a month first.');
+    if (!month || month === 'No logs yet') return alert('Select a month first.');
     const [y, mo] = month.split('-');
-    const monthName = new Date(y, mo - 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    const monthName = new Date(parseInt(y, 10), parseInt(mo, 10) - 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
     const includeAttendance = document.getElementById('chk-attendance').checked;
     const includeTasks = document.getElementById('chk-tasks').checked;
@@ -374,7 +379,7 @@
       if (y_pos > 250) { doc.addPage(); y_pos = 20; }
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.text('DAILY LOG', left, y_pos);
+      doc.text('TODAY\\'S TASKS', left, y_pos);
       y_pos += 6;
       doc.setDrawColor(200, 200, 200);
       doc.line(left, y_pos, pageW - left, y_pos);
@@ -464,7 +469,9 @@
     doc.setTextColor(150,150,150);
     doc.text(`Generated ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })} · Caliph Media Tracker`, pageW / 2, 290, { align: 'center' });
 
-    doc.save(`Media-Report-${monthName.replace(' ', '-')}.pdf`);
+    const pdfBlob = doc.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    window.open(pdfUrl, '_blank');
   }
 
   populateMonths();

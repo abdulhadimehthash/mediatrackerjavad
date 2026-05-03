@@ -41,7 +41,7 @@ async function getFollowers() {
   }
   
   const result = {};
-  data.forEach(item => {
+  (data || []).forEach(item => {
     result[item.platform_id] = item.count;
   });
   return result;

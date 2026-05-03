@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verify Tasks — Media Tracker</title>
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<nav>
+  <span class="nav-brand">MEDIA<span class="dot">.</span>TRACKER</span>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="log.html">Today's Tasks</a>
+    <a href="ig_posts.html">IG Posts</a>
+    <a href="followers.html">Followers</a>
+    <a href="history.html">History</a>
+    <a href="report.html">Report</a>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <h1>Verify Tasks<span class="cursor">_</span></h1>
+    <p class="sub" id="verify-date-label">No tasks selected</p>
+  </div>
+
+  <div class="form-container">
+    <div id="empty-state" class="empty-state hidden">
+      No pending tasks to verify! Did you enter tasks in <a href="log.html" style="color: var(--primary);">Today's Tasks</a>?
+    </div>
+
+    <div id="verify-content" class="hidden">
+      <div class="form-section">
+        <label class="form-label">Review Your Tasks</label>
+        <p class="form-hint">Click ✓ to verify and include in reports. Click ✕ to vanish.</p>
+        <div id="verify-tasks-container" style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- Tasks will appear here -->
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-primary" onclick="submitVerifiedTasks()">Submit Verified Tasks</button>
+        <button type="button" class="btn-ghost" onclick="clearPending()">Clear All</button>
+      </div>
+      <div id="save-msg" class="save-msg hidden">✓ Tasks verified and sent to report!</div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+<script>
+  let pendingData = null;
+
+  function loadPendingTasks() {
+    const rawData = localStorage.getItem('pending_log');
+    if (!rawData) {
+      document.getElementById('empty-state').classList.remove('hidden');
+      return;
+    }
+
+    try {
+      pendingData = JSON.parse(rawData);
+      if (!pendingData || !pendingData.tasks || pendingData.tasks.length === 0) {
+        document.getElementById('empty-state').classList.remove('hidden');
+        return;
+      }
+
+      document.getElementById('verify-content').classList.remove('hidden');
+      
+      const dateLabel = new Date(pendingData.date).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      document.getElementById('verify-date-label').textContent = "Pending tasks for " + dateLabel;
+
+      const container = document.getElementById('verify-tasks-container');
+      container.innerHTML = '';
+
+      pendingData.tasks.forEach(text => {
+        if (!text.trim()) return;
+        const row = document.createElement('div');
+        row.className = 'task-verify-row pending';
+        row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; background: var(--bg2); padding: 12px; border-radius: 8px; border: 1px solid var(--border);';
+        
+        row.innerHTML = `
+          <span class="task-text" style="color: var(--text); font-size: 14px;">${text}</span>
+          <div class="task-actions" style="display: flex; gap: 8px; align-items: center;">
+            <button type="button" onclick="verifyTask(this, false)" style="background: #ff4444; color: white; border: none; border-radius: 4px; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px;">✕</button>
+            <button type="button" onclick="verifyTask(this, true)" style="background: #4caf50; color: white; border: none; border-radius: 4px; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px;">✓</button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+
+    } catch (e) {
+      console.error(e);
+      document.getElementById('empty-state').classList.remove('hidden');
+    }
+  }
+
+  function verifyTask(btn, isCorrect) {
+    const row = btn.closest('.task-verify-row');
+    if (!isCorrect) {
+      row.remove();
+    } else {
+      row.classList.remove('pending');
+      row.classList.add('verified');
+      const textSpan = row.querySelector('.task-text');
+      textSpan.style.color = '#4caf50';
+      row.style.borderColor = '#4caf5033';
+      row.style.background = '#4caf5011';
+      row.querySelector('.task-actions').innerHTML = `
+        <span style="color: #4caf50; font-weight: bold; font-size: 12px; margin-right: 8px;">✓ Done</span>
+        <button type="button" onclick="this.closest('.task-verify-row').remove()" style="background: transparent; border: none; color: var(--text2); cursor: pointer; font-size: 16px; padding: 0; display: flex; align-items: center;">×</button>
+      `;
+    }
+  }
+
+  async function submitVerifiedTasks() {
+    if (!pendingData) return;
+
+    const verifiedTasks = [...document.querySelectorAll('.task-verify-row.verified .task-text')].map(i => i.textContent.trim()).filter(Boolean);
+    
+    if (verifiedTasks.length === 0) {
+      return alert('You must verify at least one task to submit, or use Clear All to cancel.');
+    }
+
+    try {
+      await saveLog(pendingData.date, verifiedTasks, pendingData.notes || '');
+      localStorage.removeItem('pending_log'); // clear pending queue
+      
+      const msg = document.getElementById('save-msg');
+      msg.classList.remove('hidden');
+      setTimeout(() => { window.location.href = 'index.html'; }, 1000);
+    } catch (err) {
+      alert('Error saving log to database. Please try again.');
+    }
+  }
+
+  function clearPending() {
+    if (confirm("Are you sure you want to discard all these pending tasks?")) {
+      localStorage.removeItem('pending_log');
+      window.location.href = 'index.html';
+    }
+  }
+
+  loadPendingTasks();
+</script>
+</body>
+</html>
