@@ -16,12 +16,36 @@ async function getLogs() {
 }
 
 async function saveLog(date, tasks, notes) {
+  // Fetch existing data for this date to avoid overwriting previous entries today
+  const { data: existing } = await supabaseClient
+    .from('logs')
+    .select('tasks, notes')
+    .eq('date', date)
+    .single();
+    
+  let finalTasks = tasks;
+  let finalNotes = notes;
+  
+  if (existing) {
+    const existingTasks = existing.tasks || [];
+    // Only append tasks that aren't already there
+    const newTasks = tasks.filter(t => !existingTasks.includes(t));
+    finalTasks = [...existingTasks, ...newTasks];
+    
+    // Append notes if they are new
+    if (existing.notes && notes && !existing.notes.includes(notes)) {
+      finalNotes = existing.notes + '\\n' + notes;
+    } else if (existing.notes && !notes) {
+      finalNotes = existing.notes;
+    }
+  }
+
   const { error } = await supabaseClient
     .from('logs')
     .upsert({ 
       date: date, 
-      tasks: tasks, 
-      notes: notes 
+      tasks: finalTasks, 
+      notes: finalNotes 
     }, { onConflict: 'date' });
     
   if (error) {
