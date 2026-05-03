@@ -51,7 +51,7 @@
   </section>
 
   <section class="followers-strip">
-    <h2 class="section-title">Latest Follower Counts</h2>
+    <h2 class="section-title">Instagram Post Counts</h2>
     <div class="platform-grid" id="platform-grid">
       <!-- filled by JS -->
     </div>
@@ -85,21 +85,24 @@
     document.getElementById('month-days').textContent = thisMonth.length;
     document.getElementById('total-tasks').textContent = logs.reduce((acc, l) => acc + (l.tasks ? l.tasks.filter(t => t.trim()).length : 0), 0);
 
-    // Platform grid
-    const followers = await getFollowers();
-    const platforms = ['caliph_ig', 'kahani', 'life_at_caliph', 'pen_club', 'ksf', 'yt_subs', 'yt_videos', 'shorts'];
-    const platformNames = {
-      caliph_ig: 'Caliph IG', kahani: 'Kahani', life_at_caliph: 'Life at Caliph',
-      pen_club: 'Pen Club', ksf: 'KSF', yt_subs: 'YT Subscribers', yt_videos: 'YT Videos', shorts: 'Shorts'
-    };
+    // Platform grid (IG Posts Count)
+    const igPosts = await getIgPosts();
+    const accounts = ['Caliph life school', 'Caliph kahani', 'Life at caliph', 'Pen club', 'KSF'];
+    
+    const postCounts = {};
+    accounts.forEach(acc => postCounts[acc] = 0);
+    igPosts.forEach(post => {
+      if (postCounts[post.account] !== undefined) {
+        postCounts[post.account]++;
+      }
+    });
 
     const grid = document.getElementById('platform-grid');
     grid.innerHTML = '';
-    platforms.forEach(p => {
-      const val = followers[p] || '—';
+    accounts.forEach(acc => {
       const card = document.createElement('div');
       card.className = 'pf-card';
-      card.innerHTML = `<span class="pf-name">${platformNames[p]}</span><span class="pf-val">${val}</span>`;
+      card.innerHTML = `<span class="pf-name">${acc.toUpperCase()}</span><span class="pf-val">${postCounts[acc]}</span>`;
       grid.appendChild(card);
     });
 
